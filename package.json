@@ -1,0 +1,25 @@
+{
+  "name": "sample",
+  "version": "0.0.1",
+  "description": "sample sofajs application",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sofajs/sample.git"
+  },
+  "keywords": [
+    "sample",
+    "sofajs",
+    "application",
+    "example"
+  ],
+  "author": "Jon Swenson",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/sofajs/sample/issues"
+  },
+  "homepage": "https://github.com/sofajs/sample"
+}
