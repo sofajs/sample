@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "sofajs": "0.0.x",
+    "docos": "0.0.x",
     "async": "1.x.x",
     "bcrypt": "0.x.x",
     "bluebird": "2.x.x",
