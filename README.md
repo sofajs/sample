@@ -15,7 +15,7 @@
 * `npm run load`<br/>
    load fixutures and design functions into couchDB.<br/>
    Run above "load" command twice the first time it is run.
-   If database does not exists yet it does not automitically load fixture data.
+   If database does not exists yet it does not automatically load fixture data.
    Second time round will work.  Eventually, I will fix this issue.
 * `npm test` ensure that all tests execute.
 * To use in hapijs project place sofajs object in `server.app` property.<br/>
