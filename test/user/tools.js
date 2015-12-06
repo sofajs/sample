@@ -62,4 +62,21 @@ describe('tools.user', function () {
             });
         });
     });
+
+    it('tools.user.validatePassword validate pw', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            //var password = 'bo-isTss@s"PZ';
+            var password = '3b0ss`_T4ss@sPZ';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+
+                console.log('password validation error: ' + JSON.stringify(err) + ' result ' + JSON.stringify(result));
+                done();
+            });
+        });
+    });
 });
