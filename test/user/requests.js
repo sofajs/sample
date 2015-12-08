@@ -172,6 +172,7 @@ describe('requests.user', function () {
         });
     });
 
+
     it('user.findByUsername mock nano.view failure', function (done) {
 
         var username = 'Foo Foo';
@@ -346,6 +347,8 @@ describe('requests.user', function () {
 
                 // foo@hapiu.com
 
+                // change email back
+
                 database.requests.user.updateEmail(result.rows[0].value._id, originalEmail,  function (err3, result3) {
 
                     // revert email back to original.
@@ -354,7 +357,6 @@ describe('requests.user', function () {
                     expect(result3).to.equal('Edited email address.');
                     done();
                 });
-                // console.log('boom: ' + JSON.stringify(result2));
             });
         });
     });
@@ -370,7 +372,165 @@ describe('requests.user', function () {
             done();
         });
     });
+
+    it('user.updatePassword success', function (done) {
+
+        database.requests.user.findByUsername('Foo Foo', function (err, result) {
+
+            // console.log('got user**' + result.rows[0].value.email + '\n' + result.rows[0].value._id);
+
+            var originalPW = result.rows[0].value.pw;
+            var pw = '3388_LoveH**';
+
+            database.requests.user.updatePassword(result.rows[0].value._id, pw,  function (err2, result2) {
+
+                // message passed from design function in couchdb.
+
+                expect(result2).to.equal('Updated password.');
+
+                database.requests.user.updatePassword(result.rows[0].value._id, originalPW,  function (err3, result3) {
+
+                    // revert password back to original.
+                    // allows for tests to be re-run and not fail.
+
+                    expect(result3).to.equal('Updated password.');
+                    done();
+                });
+            });
+        });
+    });
+
+    it('user.updatePassword fail', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, updateMethodName, docid, insertDocument, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock _design/user update method failure'));
+            };
+
+            database.requests.user.updatePassword('mockId', 'mockPwToUpdate',  function (err, result) {
+
+                // message passed from design function in couchdb.
+
+                expect(err.description).to.equal('passwordUpdateFailed() nano.atomic.update failed.');
+                done();
+            });
+
+        });
+    });
+
+    it('user.createUniqueUsername success created username', function (done) {
+
+        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
+
+            // store unique username data for destroyUniqueUsername tests.
+            // used a couple tests later.
+
+            internals.destroy = { _id: newDocumentId, _rev: newDocumentRevId };
+
+            expect(newDocumentId).to.equal('username/hapiuniversity');
+            return done();
+        });
+    });
+
+    it('user.createUniqueUsername fail username already exists', function (done) {
+
+        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
+
+            if ((err) && (err === 'Username already exists.')) {
+                expect(err).to.equal('Username already exists.');
+                return done();
+            }
+        });
+    });
+
+    it('user.createUniqueUsername second fail username already exists', function (done) {
+
+        // set up username to fail.
+        // 'Foo Foo' username exists in fixture data.
+
+        var original = internals.mockUser1.username;
+        internals.mockUser1.username = 'Foo Foo';
+
+        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
+
+            internals.mockUser1.username = original;
+
+            if ((err) && (err === 'Username already exists.')) {
+                expect(err).to.equal('Username already exists.');
+                return done();
+            }
+        });
+    });
+
+    it('user.createUniqueUsername mock founction.core.insertid failure', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.foundation.core.insertid;
+
+            sofaInternals.foundation.core.insertid = function (documentToInsert, uniqueIdToInsert, callback) {
+
+                return callback(new Error('Mock foundation.insertid failure.'), null, null);
+            };
+
+            database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
+
+                if ((err) && (err === 'Error: foundation.core.insertid failed.')) {
+                    expect(err).to.equal('Error: foundation.core.insertid failed.');
+                    return done();
+                }
+            });
+        });
+    });
+
+
+    it('user.findByUniqueUsername', function (done) {
+
+        database.requests.user.findByUniqueUsername('username/hapiuniversity', function (err, result) {
+
+            // expect(records.rows.length).to.equal(1);
+            // expect(records.rows[0].value.email).to.equal('foo@hapiu.com');
+
+            expect(err).to.equal(null);
+            expect(result._id).to.equal('username/hapiuniversity');
+            expect(result._rev).to.exist();
+            // console.log('findByUniqueUsername: ' + err + ' -- ' + JSON.stringify(result));
+            done();
+        });
+    });
+
+    // it('user.destroyUniqueUsername success', function (done) {
+
+    //     // set up username to fail.
+    //     // 'Foo Foo' username exists in fixture data.
+
+    //     database.requests.user.destroy(, rev, function (err, result) {
+
+    //         internals.mockUser1.username = original;
+
+    //         if ((err) && (err.description === 'nano failed to destroy the document.')) {
+    //             // expect(err).to.equal('Username already exists.');
+    //             console.log('destory unique username failed.');
+    //             return done();
+    //         }
+    //     });
+    // });
 });
 
 
 
+internals.mockUser1 = {
+    'username': 'hapiuniversity',
+    'first': 'Hapi',
+    'last': 'Nes',
+    'pw': 'hapiu',
+    'email': 'hapiu@boom.com',
+    'scope': ['user'],
+    loginAttempts: 0,
+    lockUntil: Date.now() - 60 * 1000
+};

@@ -1,5 +1,6 @@
 var Code = require('code');
 var Lab = require('lab');
+var Joi = require('joi');
 // var Sofajs = require('sofajs');
 
 var Sofajs = require('../../../sofajs/lib');
@@ -63,7 +64,7 @@ describe('tools.user', function () {
         });
     });
 
-    it('tools.user.validatePassword validate pw', function (done) {
+    it('tools.user.validatePassword validate valid pw', function (done) {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
@@ -74,7 +75,106 @@ describe('tools.user', function () {
 
                 // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
 
-                console.log('password validation error: ' + JSON.stringify(err) + ' result ' + JSON.stringify(result));
+                expect(result).to.equal(true);
+                // console.log('password validation error: ' + JSON.stringify(err) + ' result ' + JSON.stringify(result));
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validatePassword lowercase letters not valid', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            //var password = 'bo-isTss@s"PZ';
+            var password = '3b0`_T4s@P';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+
+                expect(result).to.equal(false);
+                expect(err).to.equal('lowercase letters not valid');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validatePassword uppercase letters not valid', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            //var password = 'bo-isTss@s"PZ';
+            var password = '3b0ss`_T4ss@s';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+
+                expect(result).to.equal(false);
+                expect(err).to.equal('uppercase letters not valid');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validatePassword special chars not valid', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var password = '3b0ss_T4sPZ';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+
+                expect(result).to.equal(false);
+                expect(err).to.equal('special characters not valid');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validatePassword digits not valid', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var password = 'b0ss`_T4ss@sPZ';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                // expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+
+                expect(result).to.equal(false);
+                expect(err).to.equal('digits not valid');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validatePassword mock Joi failure', function (done) {
+
+        var original = Joi.validate;
+
+        Joi.validate = function (passwordToValidate, schema, callback) {
+
+            // mock Joi style error message
+
+            var err = { details: [{ message: 'Joi failed' }] };
+
+            Joi.validate = original;
+
+            return callback(err, null);
+        };
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var password = '3b0ss`_T4sPZ';
+
+            sofaInternals.tools.user.validatePassword(password, function (err, result) {
+
+                expect(result).to.equal(false);
+                expect(err.details[0].message).to.equal('Joi failed');
                 done();
             });
         });
