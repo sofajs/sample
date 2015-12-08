@@ -14,6 +14,190 @@ var it = lab.test;
 var internals = {};
 var database = Sofajs.init(Composer.manifest, Composer.composeOptions);
 
+describe('tools.user uniqueDocuments', function () {
+
+    // test enforcement of unique values in user documents.
+
+    it('tools.user.uniqueUsernameCreate success', function (done) {
+
+        // uniqueUsernameCreate
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
+
+                // console.log('user.uniqueUsernameCreate success err ' +
+                //             JSON.stringify(err) +
+                //             JSON.stringify(documentId) +
+                //             JSON.stringify(documentRev));
+
+                expect(documentId).to.equal('username/' + internals.mockUser1.username);
+                expect(documentRev).to.have.length(34);
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameCreate fail username already exists.', function (done) {
+
+        // uniqueUsernameCreate
+        // fails because username already exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('Username already exists.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameCreate mock failure of function.core.insertid.', function (done) {
+
+        // uniqueUsernameCreate
+        // fails because username already exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.foundation.core.insertid;
+
+            sofaInternals.foundation.core.insertid = function (documentToInsert, uniqueIdToInsert, callback) {
+
+                sofaInternals.foundation.core.insertid = original;
+                return callback(new Error('Mock foundation.insertid failure.'), null, null);
+            };
+
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('Error: foundation.core.insertid failed.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameDestroy success.', function (done) {
+
+        // uniqueUsernameDestroy
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+
+                // console.log('destroy: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+                expect(err).to.not.exist();
+                expect(result.id).to.equal('username/' + internals.mockUser1.username);
+                expect(result.rev).to.have.length(34);
+                // expect(err).to.equal('Username already exists.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameDestroy fail document already deleted.', function (done) {
+
+        // uniqueUsernameDestroy
+        // fails because username d/n exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('Document does not exist.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameDestroy fail document d/n exists.', function (done) {
+
+        // uniqueUsernameDestroy
+        // fails because username d/n exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/boom', function (err, result) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('Document does not exist.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameDestroy fail mock nano.get() failure.', function (done) {
+
+        // uniqueUsernameDestroy
+        // fails because username d/n exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.get;
+
+            sofaInternals.db.get = function (documentName, params, callback) {
+
+                sofaInternals.db.get = original;
+                return callback(new Error('Mock sofaInternals.db.get failure.'), null, null);
+            };
+
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+
+                expect(err).to.exist();
+                expect(err.message).to.equal('Mock sofaInternals.db.get failure.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameCreate success recreate destroyed user.', function (done) {
+
+        // uniqueUsernameCreate
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
+
+                // console.log('user.uniqueUsernameCreate success err ' +
+                //             JSON.stringify(err) +
+                //             JSON.stringify(documentId) +
+                //             JSON.stringify(documentRev));
+
+                expect(documentId).to.equal('username/' + internals.mockUser1.username);
+                expect(documentRev).to.have.length(34);
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueUsernameDestroy fail mock sofaInternals.db.destroy() failure.', function (done) {
+
+        // uniqueUsernameDestroy
+        // fails because username d/n exists.
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.destroy;
+
+            sofaInternals.db.destroy = function (documentName, params, callback) {
+
+                sofaInternals.db.destroy = original;
+                return callback(new Error('Mock sofaInternals.db.destroy failure.'), null);
+            };
+
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+
+                expect(err).to.exist();
+                expect(err.message).to.equal('Mock sofaInternals.db.destroy failure.');
+                done();
+            });
+        });
+    });
+
+});
+
 describe('tools.user', function () {
 
     it('tools.user.hashem Bcrypt.genSalt failed', function (done) {
@@ -180,3 +364,15 @@ describe('tools.user', function () {
         });
     });
 });
+
+internals.mockUser1 = {
+    'username': 'uniqueuser',
+    'first': 'Sofa',
+    'last': 'Js',
+    'pw': 'n_c&d8yTT',
+    'email': 'sofajs@boom.com',
+    'scope': ['user'],
+    loginAttempts: 0,
+    lockUntil: Date.now() - 60 * 1000
+};
+

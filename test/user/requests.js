@@ -475,6 +475,7 @@ describe('requests.user', function () {
 
             sofaInternals.foundation.core.insertid = function (documentToInsert, uniqueIdToInsert, callback) {
 
+                sofaInternals.foundation.core.insertid = original;
                 return callback(new Error('Mock foundation.insertid failure.'), null, null);
             };
 
