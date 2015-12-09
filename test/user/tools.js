@@ -48,7 +48,7 @@ describe('tools.user uniqueDocuments', function () {
             sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
 
                 expect(err).to.exist();
-                expect(err).to.equal('Username already exists.');
+                expect(err).to.equal('uuid already exists.');
                 done();
             });
         });
@@ -90,7 +90,6 @@ describe('tools.user uniqueDocuments', function () {
                 expect(err).to.not.exist();
                 expect(result.id).to.equal('username/' + internals.mockUser1.username);
                 expect(result.rev).to.have.length(34);
-                // expect(err).to.equal('Username already exists.');
                 done();
             });
         });
@@ -191,21 +190,23 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameUpdate', function (done) {
+    it('tools.user.uniqueUsernameUpdate success', function (done) {
 
-        database.getSofaInternals(function (err, sofaInternals) {
+        internals.done = done;
+        return database.getSofaInternals(function (err, sofaInternals) {
 
             var newUsername = 'uniqueUsernameUpdated';
 
-            sofaInternals.tools.user.uniqueUsernameUpdate(internals.mockUser1.username, newUsername,
+            return sofaInternals.tools.user.uniqueUsernameUpdate('username/' + internals.mockUser1.username, newUsername,
                 function (err, updatedUsername, updatedUsernameRev) {
 
                     if (err) {
-                        return done();
+                        return internals.done();
                     }
 
+                    console.log('result: ' + updatedUsername);
                     expect(updatedUsername).to.equal('username/' + newUsername);
-                    return  done();
+                    return  internals.done();
                 });
         });
     });
@@ -219,11 +220,11 @@ describe('tools.user uniqueDocuments', function () {
 
             var newUsername = 'uniqueUsernameUpdated';
 
-            sofaInternals.tools.user.uniqueUsernameUpdate(internals.mockUser1.username, newUsername,
+            sofaInternals.tools.user.uniqueUsernameUpdate('username/' + internals.mockUser1.username, newUsername,
                 function (err, updatedUsername, updatedUsernameRev) {
 
                     if (err) {
-                        expect(err).to.equal('Username already exists.');
+                        expect(err).to.equal('uuid already exists.');
                         return done();
                     }
                 });
