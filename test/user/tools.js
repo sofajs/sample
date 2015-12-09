@@ -128,7 +128,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameDestroy fail mock nano.get() failure.', function (done) {
+    it('tools.user.uniqueUsernameDestroy mock nano.get() failure.', function (done) {
 
         // uniqueUsernameDestroy
         // fails because username d/n exists.
@@ -160,11 +160,6 @@ describe('tools.user uniqueDocuments', function () {
 
             sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
 
-                // console.log('user.uniqueUsernameCreate success err ' +
-                //             JSON.stringify(err) +
-                //             JSON.stringify(documentId) +
-                //             JSON.stringify(documentRev));
-
                 expect(documentId).to.equal('username/' + internals.mockUser1.username);
                 expect(documentRev).to.have.length(34);
                 done();
@@ -172,7 +167,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameDestroy fail mock sofaInternals.db.destroy() failure.', function (done) {
+    it('tools.user.uniqueUsernameDestroy mock sofaInternals.db.destroy() failure.', function (done) {
 
         // uniqueUsernameDestroy
         // fails because username d/n exists.
@@ -196,6 +191,64 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
+    it('tools.user.uniqueUsernameUpdate', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var newUsername = 'uniqueUsernameUpdated';
+
+            sofaInternals.tools.user.uniqueUsernameUpdate(internals.mockUser1.username, newUsername,
+                function (err, updatedUsername, updatedUsernameRev) {
+
+                    if (err) {
+                        return done();
+                    }
+
+                    expect(updatedUsername).to.equal('username/' + newUsername);
+                    return  done();
+                });
+        });
+    });
+
+    it('tools.user.uniqueUsernameUpdate fail update user already exists', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // user already updated to this value.
+            // update query should fail.
+
+            var newUsername = 'uniqueUsernameUpdated';
+
+            sofaInternals.tools.user.uniqueUsernameUpdate(internals.mockUser1.username, newUsername,
+                function (err, updatedUsername, updatedUsernameRev) {
+
+                    if (err) {
+                        expect(err).to.equal('Username already exists.');
+                        return done();
+                    }
+                });
+        });
+    });
+
+    it('tools.user.uniqueUsernameUpdate fail to destroy old username.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // user already updated to this value.
+            // update query should fail.
+
+            var newUsername = 'uniqueUserBoomFail';
+
+            sofaInternals.tools.user.uniqueUsernameUpdate('boom', newUsername,
+                function (err, updatedUsername, updatedUsernameRev) {
+
+                    if (err) {
+                        expect(err).to.equal('Reverted transaction. UniqueUsernameDestroy failed.');
+                        return done();
+                    }
+                });
+        });
+    });
 });
 
 describe('tools.user', function () {
@@ -218,7 +271,6 @@ describe('tools.user', function () {
 
                 Bcrypt.genSalt = original;
                 expect(err.message).to.equal('Bcrypt.genSalt() failed to generate salt.');
-                // console.log('hashem !!! err ' + JSON.stringify(err.message));
                 done();
             });
         });
