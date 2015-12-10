@@ -204,7 +204,7 @@ describe('tools.user uniqueDocuments', function () {
                         return internals.done();
                     }
 
-                    console.log('result: ' + updatedUsername);
+                    // console.log('result: ' + updatedUsername);
                     expect(updatedUsername).to.equal('username/' + newUsername);
                     return  internals.done();
                 });
@@ -248,6 +248,35 @@ describe('tools.user uniqueDocuments', function () {
                         return done();
                     }
                 });
+        });
+    });
+
+    it('user.uniqueGet success', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueGet('username/hapiuniversity', function (err, result) {
+
+                expect(err).to.equal(null);
+                expect(result._id).to.equal('username/hapiuniversity');
+                expect(result._rev).to.exist();
+                done();
+            });
+        });
+    });
+
+    it('user.uniqueGet fail', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueGet('boom', function (err, result) {
+
+                expect(err).to.exist();
+                expect(err.description).to.equal('uuid does not exist.');
+                // expect(result._id).to.equal('username/hapiuniversity');
+                // expect(result._rev).to.exist();
+                done();
+            });
         });
     });
 });

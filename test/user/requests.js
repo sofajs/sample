@@ -159,16 +159,55 @@ describe('requests.user', function () {
         });
     });
 
-    it('user.findByUsername', function (done) {
+    it('user.findByUsername success', function (done) {
 
         var username = 'Foo Foo';
 
-        database.requests.user.findByUsername(username, function (err, records) {
+        database.requests.user.findByUsername(username, function (err, record) {
 
-            expect(records.rows.length).to.equal(1);
-            expect(records.rows[0].value.email).to.equal('foo@hapiu.com');
+            // expect(records.rows.length).to.equal(1);
+            expect(record.email).to.equal('foo@hapiu.com');
 
             done();
+        });
+    });
+
+    it('user.findByUsername fail username not found.', function (done) {
+
+        var username = 'Fooky';
+
+        database.requests.user.findByUsername(username, function (err, record) {
+
+            // expect(records.rows.length).to.equal(1);
+            expect(record).to.equal(0);
+
+            done();
+        });
+    });
+
+    it('user.findByUsername fail returned too many names.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.view;
+
+            sofaInternals.db.view = function (moduleName, menthodName, keysObject, callback) {
+
+                sofaInternals.db.view = original;
+                var result = {};
+                result.rows = ['one', 'two'];
+                return callback(null, result);
+            };
+
+            var username = 'Fooky';
+
+            database.requests.user.findByUsername(username, function (err, record) {
+
+                // expect(records.rows.length).to.equal(1);
+                expect(err).to.exists();
+                expect(err).to.equal('Result not unique.');
+                done();
+            });
         });
     });
 
@@ -338,10 +377,10 @@ describe('requests.user', function () {
 
             // console.log('got user**' + result.rows[0].value.email + '\n' + result.rows[0].value._id);
 
-            var originalEmail = result.rows[0].value.email;
+            var originalEmail = result.email;
             var email = 'wawa@dali.photo';
 
-            database.requests.user.updateEmail(result.rows[0].value._id, email,  function (err2, result2) {
+            database.requests.user.updateEmail(result._id, email,  function (err2, result2) {
 
                 expect(result2).to.equal('Edited email address.');
 
@@ -349,7 +388,7 @@ describe('requests.user', function () {
 
                 // change email back
 
-                database.requests.user.updateEmail(result.rows[0].value._id, originalEmail,  function (err3, result3) {
+                database.requests.user.updateEmail(result._id, originalEmail,  function (err3, result3) {
 
                     // revert email back to original.
                     // allows for tests to be re-run and not fail.
@@ -379,16 +418,16 @@ describe('requests.user', function () {
 
             // console.log('got user**' + result.rows[0].value.email + '\n' + result.rows[0].value._id);
 
-            var originalPW = result.rows[0].value.pw;
+            var originalPW = result.pw;
             var pw = '3388_LoveH**';
 
-            database.requests.user.updatePassword(result.rows[0].value._id, pw,  function (err2, result2) {
+            database.requests.user.updatePassword(result._id, pw,  function (err2, result2) {
 
                 // message passed from design function in couchdb.
 
                 expect(result2).to.equal('Updated password.');
 
-                database.requests.user.updatePassword(result.rows[0].value._id, originalPW,  function (err3, result3) {
+                database.requests.user.updatePassword(result._id, originalPW,  function (err3, result3) {
 
                     // revert password back to original.
                     // allows for tests to be re-run and not fail.
