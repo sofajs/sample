@@ -231,6 +231,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
+
     it('tools.user.uniqueUsernameUpdate fail to destroy old username.', function (done) {
 
         database.getSofaInternals(function (err, sofaInternals) {
@@ -248,6 +249,21 @@ describe('tools.user uniqueDocuments', function () {
                         return done();
                     }
                 });
+        });
+    });
+
+    it('tools.user.uniqueUsernameCreate reload fixture username, update test removed original.', function (done) {
+
+        // uniqueUsernameCreate
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameCreate('hapiuniversity', function (err, documentId, documentRev) {
+
+                expect(documentId).to.equal('username/' + 'hapiuniversity');
+                expect(documentRev).to.have.length(34);
+                done();
+            });
         });
     });
 
@@ -280,6 +296,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 });
+
 
 describe('tools.user', function () {
 

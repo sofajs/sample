@@ -462,85 +462,38 @@ describe('requests.user', function () {
         });
     });
 
-    it('user.createUniqueUsername success created username', function (done) {
-
-        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
-
-            // store unique username data for destroyUniqueUsername tests.
-            // used a couple tests later.
-
-            internals.destroy = { _id: newDocumentId, _rev: newDocumentRevId };
-
-            expect(newDocumentId).to.equal('username/hapiuniversity');
-            return done();
-        });
-    });
-
-    it('user.createUniqueUsername fail username already exists', function (done) {
-
-        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
-
-            if ((err) && (err === 'Username already exists.')) {
-                expect(err).to.equal('Username already exists.');
-                return done();
-            }
-        });
-    });
-
-    it('user.createUniqueUsername second fail username already exists', function (done) {
-
-        // set up username to fail.
-        // 'Foo Foo' username exists in fixture data.
-
-        var original = internals.mockUser1.username;
-        internals.mockUser1.username = 'Foo Foo';
-
-        database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
-
-            internals.mockUser1.username = original;
-
-            if ((err) && (err === 'Username already exists.')) {
-                expect(err).to.equal('Username already exists.');
-                return done();
-            }
-        });
-    });
-
-    it('user.createUniqueUsername mock founction.core.insertid failure', function (done) {
+    it('tools.user.uniqueUsernameCreate. success', function (done) {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            var original = sofaInternals.foundation.core.insertid;
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
 
-            sofaInternals.foundation.core.insertid = function (documentToInsert, uniqueIdToInsert, callback) {
+                // console.log('user.uniqueUsernameCreate success err ' +
+                //             JSON.stringify(err) +
+                //             JSON.stringify(documentId) +
+                //             JSON.stringify(documentRev));
 
-                sofaInternals.foundation.core.insertid = original;
-                return callback(new Error('Mock foundation.insertid failure.'), null, null);
-            };
-
-            database.requests.user.createUniqueUsername(internals.mockUser1, function (err, newDocumentId, newDocumentRevId) {
-
-                if ((err) && (err === 'Error: foundation.core.insertid failed.')) {
-                    expect(err).to.equal('Error: foundation.core.insertid failed.');
-                    return done();
-                }
+                expect(documentId).to.equal('username/' + internals.mockUser1.username);
+                expect(documentRev).to.have.length(34);
+                done();
             });
         });
     });
 
+    it('cleanup tools.user.uniqueUsernameDestroy success.', function (done) {
 
-    it('user.findByUniqueUsername', function (done) {
+        // uniqueUsernameDestroy
 
-        database.requests.user.findByUniqueUsername('username/hapiuniversity', function (err, result) {
+        database.getSofaInternals(function (err, sofaInternals) {
 
-            // expect(records.rows.length).to.equal(1);
-            // expect(records.rows[0].value.email).to.equal('foo@hapiu.com');
+            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
 
-            expect(err).to.equal(null);
-            expect(result._id).to.equal('username/hapiuniversity');
-            expect(result._rev).to.exist();
-            // console.log('findByUniqueUsername: ' + err + ' -- ' + JSON.stringify(result));
-            done();
+                // console.log('destroy: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+                expect(err).to.not.exist();
+                expect(result.id).to.equal('username/' + internals.mockUser1.username);
+                expect(result.rev).to.have.length(34);
+                done();
+            });
         });
     });
 
@@ -560,6 +513,7 @@ describe('requests.user', function () {
     //         }
     //     });
     // });
+
 });
 
 
