@@ -32,7 +32,9 @@ describe('tools.user uniqueDocuments', function () {
                 //             JSON.stringify(documentRev));
 
                 expect(documentId).to.equal('username/' + internals.mockUser1.username);
-                expect(documentRev).to.have.length(34);
+
+                var splitRevisionId = documentRev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
                 done();
             });
         });
@@ -89,16 +91,20 @@ describe('tools.user uniqueDocuments', function () {
                 // console.log('destroy: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
                 expect(err).to.not.exist();
                 expect(result.id).to.equal('username/' + internals.mockUser1.username);
-                expect(result.rev).to.have.length(34);
+                // expect(result.rev).to.have.length(34);
+                var splitRevisionId = result.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
                 done();
             });
         });
     });
 
-    it('tools.user.uniqueUsernameDestroy fail document already deleted.', function (done) {
+    it('tools.user.uniqueUsernameDestroy failure because document already deleted.', function (done) {
 
         // uniqueUsernameDestroy
-        // fails because username d/n exists.
+        // fails because username document was already deleted.
+        // note, couchdb throws different errors for trying to destroy documents whose id d/n exist
+        // versus documents which was already deleted.
 
         database.getSofaInternals(function (err, sofaInternals) {
 
@@ -111,7 +117,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameDestroy fail document d/n exists.', function (done) {
+    it('tools.user.uniqueUsernameDestroy fail because document d/n exists.', function (done) {
 
         // uniqueUsernameDestroy
         // fails because username d/n exists.
@@ -160,7 +166,9 @@ describe('tools.user uniqueDocuments', function () {
             sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
 
                 expect(documentId).to.equal('username/' + internals.mockUser1.username);
-                expect(documentRev).to.have.length(34);
+                // expect(documentRev).to.have.length(34);
+                var splitRevisionId = documentRev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
                 done();
             });
         });
@@ -211,7 +219,7 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameUpdate fail update user already exists', function (done) {
+    it('tools.user.uniqueUsernameUpdate fail update username already exists', function (done) {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
@@ -232,7 +240,7 @@ describe('tools.user uniqueDocuments', function () {
     });
 
 
-    it('tools.user.uniqueUsernameUpdate fail to destroy old username.', function (done) {
+    it('tools.user.uniqueUsernameUpdate failed to destroy old username.', function (done) {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
@@ -252,16 +260,19 @@ describe('tools.user uniqueDocuments', function () {
         });
     });
 
-    it('tools.user.uniqueUsernameCreate reload fixture username, update test removed original.', function (done) {
+    it('tools.user.uniqueUsernameCreate reload \'uniqueuser\' which was previously changed/updated.', function (done) {
 
         // uniqueUsernameCreate
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            sofaInternals.tools.user.uniqueUsernameCreate('hapiuniversity', function (err, documentId, documentRev) {
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
 
-                expect(documentId).to.equal('username/' + 'hapiuniversity');
-                expect(documentRev).to.have.length(34);
+                expect(documentId).to.equal('username/' + 'uniqueuser');
+                // split documentRev at - because rev count will keep increasing
+                // causing test to fail when length becomes longer.
+                var splitRevisionId = documentRev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
                 done();
             });
         });
@@ -271,10 +282,10 @@ describe('tools.user uniqueDocuments', function () {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            sofaInternals.tools.user.uniqueGet('username/hapiuniversity', function (err, result) {
+            sofaInternals.tools.user.uniqueGet('username/uniqueuser', function (err, result) {
 
                 expect(err).to.equal(null);
-                expect(result._id).to.equal('username/hapiuniversity');
+                expect(result._id).to.equal('username/uniqueuser');
                 expect(result._rev).to.exist();
                 done();
             });
@@ -295,6 +306,25 @@ describe('tools.user uniqueDocuments', function () {
             });
         });
     });
+
+    it('cleanup', function (done) {
+
+        database.foundation.core.uniqueDestroy('username/uniqueUsernameUpdated', function (err, result) {
+
+            expect(err).to.equal(null);
+            // console.log('cleanup1 ' + JSON.stringify(result));
+            database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err2, result2) {
+
+                expect(err2).to.equal(null);
+                done();
+            });
+        });
+    });
+    // cleanup
+    // username/uniqueUsernameUpdated
+    // username/uniqueuser
+
+    // @todo generateUniqueValues coverage.
 });
 
 
@@ -317,7 +347,7 @@ describe('tools.user', function () {
             sofaInternals.tools.user.hashem('password_to_hash', function (err, salt) {
 
                 Bcrypt.genSalt = original;
-                expect(err.message).to.equal('Bcrypt.genSalt() failed to generate salt.');
+                expect(err).to.equal('failed to generate salt.');
                 done();
             });
         });
@@ -340,7 +370,7 @@ describe('tools.user', function () {
 
                 Bcrypt.hash = original;
 
-                expect(err.message).to.equal('Bcrypt.hash() failed to generate the hash.');
+                expect(err).to.equal('failed to generate the hash.');
                 // console.log('hashem bcryptMessage' + JSON.stringify(err.bcryptMessage.message));
                 done();
             });
@@ -422,7 +452,7 @@ describe('tools.user', function () {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            var password = 'b0ss`_T4ss@sPZ';
+            var password = 'b0ss`_Tss@sPZ';
 
             sofaInternals.tools.user.validatePassword(password, function (err, result) {
 
