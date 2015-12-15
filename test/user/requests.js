@@ -209,27 +209,115 @@ describe('requests.user', function () {
         });
     });
 
-    it('cleanup', function (done) {
+    // it('cleanup', function (done) {
 
-        database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err, result) {
+    //     database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err, result) {
 
-            var splitRevisionId = result.rev.split('-');
-            expect(splitRevisionId[1]).to.have.length(32);
-            expect(result.ok).to.equal(true);
+    //         var splitRevisionId = result.rev.split('-');
+    //         expect(splitRevisionId[1]).to.have.length(32);
+    //         expect(result.ok).to.equal(true);
 
-            database.foundation.core.uniqueDestroy('useremail/' + internals.mockUser1.email, function (err2, result2) {
+    //         database.foundation.core.uniqueDestroy('useremail/' + internals.mockUser1.email, function (err2, result2) {
 
-                var splitRevisionId2 = result2.rev.split('-');
-                expect(splitRevisionId2[1]).to.have.length(32);
-                expect(result2.ok).to.equal(true);
+    //             var splitRevisionId2 = result2.rev.split('-');
+    //             expect(splitRevisionId2[1]).to.have.length(32);
+    //             expect(result2.ok).to.equal(true);
 
-                return done();
-            });
-        });
-    });
+    //             return done();
+    //         });
+    //     });
+    // });
 });
 
 
+describe('requests.user.destroy', function () {
+
+    it('requests.user.destroy success', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+            // console.log('findByUsername mockUser1' + JSON.stringify(result));
+
+            database.requests.user.destroy(result._id, function (err, result2) {
+
+                // console.log('destroy result --' + JSON.stringify(err) + '--' + JSON.stringify(result2) );
+
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
+    });
+
+    it('requests.user.destroy fail user does not exist.', function (done) {
+
+        database.requests.user.destroy('nonexistentUserId', function (err, result2) {
+
+            expect(err).to.exist();
+            expect(err).to.equal('document to be destroyed does not exist.');
+            done();
+        });
+    });
+
+    it('requests.user.destroy mock failure to create unique records.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser2.username, function (err, result) {
+
+                var original = sofaInternals.tools.user.rollbackUsernameEmail;
+
+                sofaInternals.tools.user.rollbackUsernameEmail = function (fakeuser, fakeemail, callback) {
+
+                    sofaInternals.tools.user.rollbackUsernameEmail = original;
+                    return callback(new Error('mock rollback failure.'), null, null);
+                };
+
+                database.requests.user.destroy(result._id, function (err, result2) {
+
+                    expect(err).to.equal('failed to destroy unique records.');
+                    done();
+                });
+            });
+        });
+    });
+
+    it('requests.user.destroy mock couchdb system failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser2.username, function (err, result) {
+
+                var original = sofaInternals.tools.user.rollbackUsernameEmail;
+
+                sofaInternals.tools.user.rollbackUsernameEmail = function (fakeuser, fakeemail, callback) {
+
+                    sofaInternals.tools.user.rollbackUsernameEmail = original;
+                    // mock success of rollback.
+                    return callback(null, null, null);
+                };
+
+                var original2 = sofaInternals.db.destroy;
+
+                sofaInternals.db.destroy = function (resultid, resultrev, callback) {
+
+                    sofaInternals.db.destroy = original2;
+                    return callback(new Error('mock failure of couchdb destroy requests.'), null);
+                };
+
+
+                database.requests.user.destroy(result._id, function (err, result2) {
+
+                    expect(err).to.equal('couchdb destroy request failed.');
+                    done();
+                });
+            });
+        });
+    });
+          // return sofaInternals.tools.user.rollbackUsernameEmail(
+});
 
 internals.mockUser1 = {
     'username': 'mockuser1',
