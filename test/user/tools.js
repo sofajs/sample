@@ -14,7 +14,9 @@ var it = lab.test;
 var internals = {};
 var database = Sofajs.init(Composer.manifest, Composer.composeOptions);
 
-describe('tools.user uniqueDocuments', function () {
+describe('manage uniqueRecords\n\t' +
+'create, update, and destroy uniqueRecords.\n\t' +
+'uniqueRecords enforce uniqueness of \'username\' and \'email\' values.\n', function () {
 
     // test enforcement of unique values in user documents.
 
@@ -25,11 +27,6 @@ describe('tools.user uniqueDocuments', function () {
         database.getSofaInternals(function (err, sofaInternals) {
 
             sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
-
-                // console.log('user.uniqueUsernameCreate success err ' +
-                //             JSON.stringify(err) +
-                //             JSON.stringify(documentId) +
-                //             JSON.stringify(documentRev));
 
                 expect(documentId).to.equal('username/' + internals.mockUser1.username);
 

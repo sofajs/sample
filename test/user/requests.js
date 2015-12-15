@@ -15,7 +15,7 @@ var after = lab.after;
 var internals = {};
 var database = Sofajs.init(Composer.manifest, Composer.composeOptions);
 
-describe('requests.user', function () {
+describe('requests.user.create', function () {
 
     it('requests.user.create success', function (done) {
 
