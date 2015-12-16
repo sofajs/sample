@@ -14,9 +14,7 @@ var it = lab.test;
 var internals = {};
 var database = Sofajs.init(Composer.manifest, Composer.composeOptions);
 
-describe('manage uniqueRecords\n\t' +
-'create, update, and destroy uniqueRecords.\n\t' +
-'uniqueRecords enforce uniqueness of \'username\' and \'email\' values.\n', function () {
+describe('uniqueUsername Create, Destroy, & Update', function () {
 
     // test enforcement of unique values in user documents.
 
@@ -83,7 +81,7 @@ describe('manage uniqueRecords\n\t' +
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+            sofaInternals.tools.user.uniqueUsernameDestroy(internals.mockUser1.username, function (err, result) {
 
                 // console.log('destroy: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
                 expect(err).to.not.exist();
@@ -96,7 +94,7 @@ describe('manage uniqueRecords\n\t' +
         });
     });
 
-    it('tools.user.uniqueUsernameDestroy failure because document already deleted.', function (done) {
+    it('tools.user.uniqueUsernameDestroy failure document was already deleted.', function (done) {
 
         // uniqueUsernameDestroy
         // fails because username document was already deleted.
@@ -148,7 +146,7 @@ describe('manage uniqueRecords\n\t' +
             sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
 
                 expect(err).to.exist();
-                expect(err.message).to.equal('Mock sofaInternals.db.get failure.');
+                expect(err).to.equal('couchdb request failed.');
                 done();
             });
         });
@@ -186,10 +184,10 @@ describe('manage uniqueRecords\n\t' +
                 return callback(new Error('Mock sofaInternals.db.destroy failure.'), null);
             };
 
-            sofaInternals.tools.user.uniqueUsernameDestroy('username/' + internals.mockUser1.username, function (err, result) {
+            sofaInternals.tools.user.uniqueUsernameDestroy(internals.mockUser1.username, function (err, result) {
 
                 expect(err).to.exist();
-                expect(err.message).to.equal('Mock sofaInternals.db.destroy failure.');
+                expect(err).to.equal('failed to destroy the record.');
                 done();
             });
         });
@@ -250,7 +248,7 @@ describe('manage uniqueRecords\n\t' +
                 function (err, updatedUsername, updatedUsernameRev) {
 
                     if (err) {
-                        expect(err).to.equal('Reverted transaction. UniqueUsernameDestroy failed.');
+                        expect(err).to.equal('Reverted transaction. uniqueDestroy failed.');
                         return done();
                     }
                 });
@@ -279,7 +277,7 @@ describe('manage uniqueRecords\n\t' +
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            sofaInternals.tools.user.uniqueGet('username/uniqueuser', function (err, result) {
+            sofaInternals.foundation.core.uniqueGet('username/uniqueuser', function (err, result) {
 
                 expect(err).to.equal(null);
                 expect(result._id).to.equal('username/uniqueuser');
@@ -293,12 +291,10 @@ describe('manage uniqueRecords\n\t' +
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            sofaInternals.tools.user.uniqueGet('boom', function (err, result) {
+            sofaInternals.foundation.core.uniqueGet('boom', function (err, result) {
 
                 expect(err).to.exist();
-                expect(err.description).to.equal('uuid does not exist.');
-                // expect(result._id).to.equal('username/hapiuniversity');
-                // expect(result._rev).to.exist();
+                expect(err).to.equal('uuid does not exist.');
                 done();
             });
         });
@@ -320,12 +316,10 @@ describe('manage uniqueRecords\n\t' +
     // cleanup
     // username/uniqueUsernameUpdated
     // username/uniqueuser
-
-    // @todo generateUniqueValues coverage.
 });
 
 
-describe('tools.user', function () {
+describe('tools.user.hashem', function () {
 
     it('tools.user.hashem Bcrypt.genSalt failed', function (done) {
 
@@ -336,6 +330,8 @@ describe('tools.user', function () {
 
         Bcrypt.genSalt = function (SALT_WORK_FACTOR, callback) {
 
+            Bcrypt.genSalt = original;
+
             return callback(new Error('genSalt failed'), null);
         };
 
@@ -343,7 +339,6 @@ describe('tools.user', function () {
 
             sofaInternals.tools.user.hashem('password_to_hash', function (err, salt) {
 
-                Bcrypt.genSalt = original;
                 expect(err).to.equal('failed to generate salt.');
                 done();
             });
@@ -358,6 +353,7 @@ describe('tools.user', function () {
 
         Bcrypt.hash = function (password, salt, callback) {
 
+            Bcrypt.hash = original;
             return callback(new Error('hash failed'), null);
         };
 
@@ -365,7 +361,6 @@ describe('tools.user', function () {
 
             sofaInternals.tools.user.hashem('password_to_hash', function (err, salt) {
 
-                Bcrypt.hash = original;
 
                 expect(err).to.equal('failed to generate the hash.');
                 // console.log('hashem bcryptMessage' + JSON.stringify(err.bcryptMessage.message));
@@ -373,6 +368,9 @@ describe('tools.user', function () {
             });
         });
     });
+});
+
+describe('tools.user.validatePassword', function () {
 
     it('tools.user.validatePassword validate valid pw', function (done) {
 
@@ -489,6 +487,320 @@ describe('tools.user', function () {
             });
         });
     });
+});
+
+describe('tools.user.generateUniqueValues', function () {
+
+    it('tools.user.generateUniqueValues load username fixture record.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueUsernameCreate(internals.mockUser1.username, function (err, documentId, documentRev) {
+
+                expect(documentId).to.equal('username/' + internals.mockUser1.username);
+
+                var splitRevisionId = documentRev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                done();
+            });
+        });
+    });
+
+    it('tools.user.generateUniqueValues load email fixture record.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueEmailCreate(internals.mockUser1.email, function (err, documentId, documentRev) {
+
+                expect(documentId).to.equal('useremail/' + internals.mockUser1.email);
+
+                var splitRevisionId = documentRev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                done();
+            });
+        });
+    });
+
+
+    it('tools.user.generateUniqueValues fail mock failure of foundation.core.uniqueCreate.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.foundation.core.uniqueCreate;
+
+            sofaInternals.foundation.core.uniqueCreate = function (username, type, callback) {
+
+                sofaInternals.foundation.core.uniqueCreate = original;
+                return callback(new Error('mock foundation.core.uniqueCreate failure.'), null, null);
+            };
+
+            sofaInternals.
+                tools.
+                    user.
+                        generateUniqueValues(
+                            internals.mockUser1.username,
+                            internals.mockUser1.email,
+                            function (err, usernameDocument, useremailDocument) {
+
+                                expect(err).to.equal('couchdb request failed.');
+                                done();
+                            });
+        });
+    });
+
+    it('tools.user.generateUniqueValues fail email already exists.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.tools.user.uniqueUsernameCreate;
+
+            sofaInternals.tools.user.uniqueUsernameCreate = function (username, callback) {
+
+                sofaInternals.tools.user.uniqueUsernameCreate = original;
+
+                // mock no errors.
+
+                return callback(null, 1, 1);
+            };
+
+            var original2 = sofaInternals.tools.user.rollbackOne;
+
+            sofaInternals.tools.user.rollbackOne = function (usernameId, callback) {
+
+                sofaInternals.tools.user.rollbackOne = original2;
+
+                return callback(null, 1);
+            };
+
+            return sofaInternals.
+                tools.
+                    user.
+                        generateUniqueValues(
+                            internals.mockUser1.username,
+                            internals.mockUser1.email,
+                            function (err, usernameDocument, useremailDocument) {
+
+                                expect(err).to.equal('useremail already exists.');
+                                done();
+                            });
+        });
+    });
+
+    it('tools.user.generateUniqueValues fail username rollback failed.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.tools.user.uniqueUsernameCreate;
+
+            sofaInternals.tools.user.uniqueUsernameCreate = function (username, callback) {
+
+                sofaInternals.tools.user.uniqueUsernameCreate = original;
+
+                return callback(null, 1, 1);
+            };
+
+            var original2 = sofaInternals.tools.user.rollbackOne;
+
+            sofaInternals.tools.user.rollbackOne = function (usernameId, callback) {
+
+                sofaInternals.tools.user.rollbackOne = original2;
+
+                return callback(new Error('mock rollback failure.'), 1);
+            };
+
+            return sofaInternals.
+                tools.
+                    user.
+                        generateUniqueValues(
+                            internals.mockUser1.username,
+                            internals.mockUser1.email,
+                            function (err, usernameDocument, useremailDocument) {
+
+                                expect(err).to.equal('username rollback failed.');
+                                done();
+                            });
+        });
+    });
+
+    it('tools.user.generateUniqueValues success username rollback.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.tools.user.uniqueUsernameCreate;
+
+            sofaInternals.tools.user.uniqueUsernameCreate = function (username, callback) {
+
+                sofaInternals.tools.user.uniqueUsernameCreate = original;
+
+                return callback(null, 1, 1);
+            };
+
+            var original2 = sofaInternals.tools.user.uniqueEmailCreate;
+
+            sofaInternals.tools.user.uniqueEmailCreate = function (emailToCreate, callback) {
+
+                sofaInternals.tools.user.uniqueEmailCreate = original2;
+
+                return callback(new Error('mock unique email failure.'), null, null);
+            };
+
+            return sofaInternals.
+                tools.
+                    user.
+                        generateUniqueValues(
+                            internals.mockUser1.username,
+                            internals.mockUser1.email,
+                            function (err, usernameDocument, useremailDocument) {
+
+                                expect(err).to.equal('couchdb request failed.');
+                                done();
+                            });
+        });
+    });
+
+    it('tools.user.rollbackUsernameEmail fail to destroy username document.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.rollbackUsernameEmail('mockuid', 'mockemail', function (err, result) {
+
+                expect(err).to.equal('rollback failed.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.rollbackUsernameEmail fail to destroy email document.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.foundation.core.uniqueDestroy;
+
+            sofaInternals.tools.user.uniqueUsernameDestroy = function (idToDestroy, callback) {
+
+                sofaInternals.tools.user.uniqueDestroy = original;
+                return callback(null, null);
+
+            };
+
+            sofaInternals.tools.user.rollbackUsernameEmail('mockuid', 'mockemail', function (err, result) {
+
+                expect(err).to.equal('rollback failed.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.rollbackOne fail to destroy requested document.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.foundation.core.uniqueDestroy;
+
+            sofaInternals.foundation.core.uniqueDestroy = function (idToDestroy, callback) {
+
+                sofaInternals.foundation.core.uniqueDestroy = original;
+                return callback(new Error('mock uniqueDestroy failure.'), null);
+
+            };
+
+            sofaInternals.tools.user.rollbackOne(1, function (err, result) {
+
+                expect(err).to.equal('rollbackOne failed.');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueEmailUpdate success updated email.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueEmailUpdate(internals.mockUser1.email, 'sample@boom.com', function (err, newId, newRevId) {
+
+                expect(newId).to.equal('useremail/sample@boom.com');
+                done();
+            });
+        });
+    });
+
+    it('tools.user.uniqueEmailUpdate success updated email.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueEmailUpdate('sample@boom.com', 'useremail/' + internals.mockUser1.email, function (err, newId, newRevId) {
+
+                expect(newId).to.equal('useremail/sofajs@boom.com');
+                done();
+            });
+        });
+    });
+
+    it('cleanup revert updated email. tools.user.uniqueEmailUpdate success.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueEmailUpdate('useremail/' + internals.mockUser1.email, 'sample@boom.com',  function (err, newId, newRevId) {
+
+                expect(newId).to.equal('useremail/' + 'sample@boom.com');
+                done();
+            });
+        });
+    });
+
+    // it('tools.user.generateUniqueValues fail email already exists.', function (done) {
+
+    //     database.getSofaInternals(function (err, sofaInternals) {
+
+    //         // mock uniqueUsernameCreate passing/success.
+
+    //         var original = sofaInternals.tools.user.uniqueUsernameCreate;
+
+    //         sofaInternals.tools.user.uniqueUsernameCreate = function (username, callback) {
+
+    //             sofaInternals.tools.user.uniqueUsernameCreate = original;
+    //
+    //             // mock no errors.
+
+    //             return callback(null, null, null);
+    //         };
+
+    //         return sofaInternals.
+    //             tools.
+    //                 user.
+    //                     generateUniqueValues(
+    //                         internals.mockUser1.username,
+    //                         internals.mockUser1.email,
+    //                         function (err, usernameDocument, useremailDocument) {
+
+    //                             expect(err).to.equal('useremail already exists.');
+    //                             done();
+    //                         });
+    //     });
+    // });
+
+    // it('cleanup', function (done) {
+
+    //     // database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err, result) {
+    //     database.getSofaInternals(function (err, sofaInternals) {
+
+    //         // sofaInternals.tools.user.uniqueUsernameDestroy(internals.mockUser1.username, function (err, result) {
+
+    //             // expect(err).to.equal(null);
+
+    //             sofaInternals.tools.user.uniqueEmailDestroy(internals.mockUser1.email, function (err, result2) {
+
+    //                 console.log('err ' +  JSON.stringify(err));
+    //                 console.log('boom ' +  JSON.stringify(result2));
+    //                 expect(result2.id).to.equal('useremail/' + internals.mockUser1.email);
+
+    //                 var splitRevisionId = result2.rev.split('-');
+    //                 expect(splitRevisionId[1]).to.have.length(32);
+    //                 done();
+    //             });
+    //         // });
+    //     });
+    // });
 });
 
 internals.mockUser1 = {

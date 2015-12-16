@@ -240,8 +240,6 @@ describe('requests.user.destroy', function () {
 
             database.requests.user.destroy(result._id, function (err, result2) {
 
-                // console.log('destroy result --' + JSON.stringify(err) + '--' + JSON.stringify(result2) );
-
                 var splitRevisionId = result2.rev.split('-');
                 expect(splitRevisionId[1]).to.have.length(32);
                 expect(result2.ok).to.equal(true);
