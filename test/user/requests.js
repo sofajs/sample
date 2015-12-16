@@ -1,8 +1,8 @@
 var Code = require('code');
 var Lab = require('lab');
-var Sofajs = require('sofajs');
+// var Sofajs = require('sofajs');
 
-// var Sofajs = require('../../../sofajs/lib');
+var Sofajs = require('../../../sofajs/lib');
 var Composer = require('../../lib/sofafest');
 
 var lab = exports.lab = Lab.script();
@@ -486,11 +486,158 @@ describe('requests.user.findByEmail', function () {
 
 describe('requests.user.updateEmail', function () {
 
-    it('requests.user.updateEmail success.', function (done) {
-    
-        // @todo build test here.
+    it('requests.user.updateEmail load fixture data.', function (done) {
 
-        done();
+        database.requests.user.create(internals.mockUser1, function (err, result) {
+
+            // console.log('--' + JSON.stringify(err) + '--' + JSON.stringify(result) );
+            expect(result.ok).to.equal(true);
+            done();
+        });
+    });
+
+    it('requests.user.updateEmail success.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+            // console.log('-- ' + JSON.stringify(userDocument));
+
+            var newEmail = 'newemail@boom.com';
+
+            return database.requests.user.updateEmail(userDocument._id, userDocument.email, newEmail, function (err, result) {
+
+                // console.log('-----' + JSON.stringify(err) + ' -- ' + JSON.stringify(result));
+                expect(result).to.equal('Edited email address.');
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.updateEmail fail mock error exists.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // make mockups
+
+            var original = sofaInternals.tools.user.uniqueEmailUpdate;
+
+            // sofaInternals.tools.user.uniqueEmailUpdate(oldEmail, newEmail, function (err, newUniqueId, newIdRev) {
+            sofaInternals.tools.user.uniqueEmailUpdate = function (oldEmail, newEmail, callback) {
+
+                sofaInternals.tools.user.uniqueEmailUpdate = original;
+
+                return callback(new Error('mock uniqueEmailUpdate failure.'));
+            };
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+                // console.log('-- ' + JSON.stringify(userDocument));
+
+                var newEmail = 'newemail@boom.com';
+
+                return database.requests.user.updateEmail(userDocument._id, userDocument.email, newEmail, function (err, result) {
+
+                    // console.log('-----' + JSON.stringify(err) + ' -- ' + JSON.stringify(result));
+                    expect(err).to.equal('uniqueEmailUpdate failed.');
+                    done();
+                });
+            });
+        });
+    });
+
+
+    it('requests.user.updateEmail fail mock design update failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // make mockups
+
+            var original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, updateName, docid, key, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock design update function failure.'), null);
+            };
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+                var newEmail = 'secondNewEmail@boom.com';
+
+                return database.requests.user.updateEmail(userDocument._id, userDocument.email, newEmail, function (err, result) {
+
+                    // console.log('-----' + JSON.stringify(err) + ' -- ' + JSON.stringify(result));
+                    expect(err).to.equal('user.email update function failed.');
+                    done();
+                });
+            });
+        });
+    });
+
+    it('cleanup requests.user.updateEmail fixtures.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+            // console.log('findByUsername mockUser1' + JSON.stringify(result));
+
+            database.requests.user.destroy(result._id, function (err, result2) {
+
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
+    });
+});
+
+describe('requests.user.updateUsername', function () {
+
+    it('requests.user.updateUsername load fixture data.', function (done) {
+
+        database.requests.user.create(internals.mockUser1, function (err, result) {
+
+            // console.log('--' + JSON.stringify(err) + '--' + JSON.stringify(result) );
+            expect(result.ok).to.equal(true);
+            done();
+        });
+    });
+
+    it('requests.user.updateUsername success.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+            // console.log('prepared userDocument -- ' + JSON.stringify(userDocument));
+
+            var newUsername = 'shakaka';
+
+            return database.requests.user.updateUsername(userDocument._id, userDocument.username, newUsername, function (err, result) {
+
+                // console.log('-----' + JSON.stringify(err) + ' -- ' + JSON.stringify(result));
+                expect(result).to.equal('Updated username.');
+                return done();
+            });
+        });
+    });
+
+    it('cleanup requests.user.updateUsername fixtures.', function (done) {
+
+        // database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+        database.requests.user.findByUsername('shakaka', function (err, result) {
+
+            // console.log('findByUsername shakaka' + JSON.stringify(result));
+
+            database.requests.user.destroy(result._id, function (err, result2) {
+
+                // console.log('cleanup response: ' + JSON.stringify(err));
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
     });
 });
 
