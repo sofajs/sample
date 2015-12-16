@@ -674,11 +674,11 @@ describe('tools.user.generateUniqueValues', function () {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            var original = sofaInternals.foundation.core.uniqueDestroy;
+            var original = sofaInternals.tools.user.uniqueUsernameDestroy;
 
             sofaInternals.tools.user.uniqueUsernameDestroy = function (idToDestroy, callback) {
 
-                sofaInternals.tools.user.uniqueDestroy = original;
+                sofaInternals.tools.user.uniqueUsernameDestroy = original;
                 return callback(null, null);
 
             };
@@ -748,6 +748,18 @@ describe('tools.user.generateUniqueValues', function () {
         });
     });
 
+    it('cleanup step1 tools.user.uniqueEmailUpdate revert fixture data changes.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.uniqueEmailUpdate('sample@boom.com', 'useremail/' + internals.mockUser1.email, function (err, newId, newRevId) {
+
+                expect(newId).to.equal('useremail/sofajs@boom.com');
+                done();
+            });
+        });
+    });
+
     // it('tools.user.generateUniqueValues fail email already exists.', function (done) {
 
     //     database.getSofaInternals(function (err, sofaInternals) {
@@ -779,28 +791,26 @@ describe('tools.user.generateUniqueValues', function () {
     //     });
     // });
 
-    // it('cleanup', function (done) {
+    it('cleanup step2', function (done) {
 
-    //     // database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err, result) {
-    //     database.getSofaInternals(function (err, sofaInternals) {
+        // database.foundation.core.uniqueDestroy('username/' + internals.mockUser1.username, function (err, result) {
+        database.getSofaInternals(function (err, sofaInternals) {
 
-    //         // sofaInternals.tools.user.uniqueUsernameDestroy(internals.mockUser1.username, function (err, result) {
+            sofaInternals.tools.user.uniqueUsernameDestroy(internals.mockUser1.username, function (err, result) {
 
-    //             // expect(err).to.equal(null);
+                expect(err).to.equal(null);
 
-    //             sofaInternals.tools.user.uniqueEmailDestroy(internals.mockUser1.email, function (err, result2) {
+                sofaInternals.tools.user.uniqueEmailDestroy(internals.mockUser1.email, function (err, result2) {
 
-    //                 console.log('err ' +  JSON.stringify(err));
-    //                 console.log('boom ' +  JSON.stringify(result2));
-    //                 expect(result2.id).to.equal('useremail/' + internals.mockUser1.email);
+                    expect(result2.id).to.equal('useremail/' + internals.mockUser1.email);
 
-    //                 var splitRevisionId = result2.rev.split('-');
-    //                 expect(splitRevisionId[1]).to.have.length(32);
-    //                 done();
-    //             });
-    //         // });
-    //     });
-    // });
+                    var splitRevisionId = result2.rev.split('-');
+                    expect(splitRevisionId[1]).to.have.length(32);
+                    done();
+                });
+            });
+        });
+    });
 });
 
 internals.mockUser1 = {

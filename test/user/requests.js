@@ -204,8 +204,6 @@ describe('requests.user.create', function () {
                 expect(err).to.equal('rollback failed.');
                 done();
             });
-
-
         });
     });
 
@@ -315,6 +313,185 @@ describe('requests.user.destroy', function () {
         });
     });
           // return sofaInternals.tools.user.rollbackUsernameEmail(
+});
+
+describe('requests.user.findByUsername', function () {
+
+    it('requests.user.findByUsername fail mock view findByUsername failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.view;
+
+            sofaInternals.db.view = function (user, findByUsername, keys, callback) {
+
+                sofaInternals.db.view = original;
+
+                return callback(new Error('mock findByUsername view error.'), null);
+            };
+
+            database.requests.user.findByUsername('testUser33', function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err));
+                expect(err).to.equal('findByUsername view query failed.');
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.findByUsername success no user found.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err) + ' result: ' + JSON.stringify(result));
+                expect(result).to.equal(0);
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.findByUsername fail username not unique.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.view;
+
+            sofaInternals.db.view = function (user, findByUsername, keys, callback) {
+
+                sofaInternals.db.view = original;
+
+                var result = {
+                    rows: [1, 2]  // mock returned rows more than one element.
+                };
+                return callback(null, result);
+            };
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err) + ' result: ' + JSON.stringify(result));
+                expect(err).to.equal('Result not unique.');
+                return done();
+            });
+        });
+    });
+});
+
+describe('requests.user.findByEmail', function () {
+
+    it('requests.user.findByEmail load fixture data.', function (done) {
+
+        database.requests.user.create(internals.mockUser1, function (err, result) {
+
+            // console.log('--' + JSON.stringify(err) + '--' + JSON.stringify(result) );
+            expect(result.ok).to.equal(true);
+            done();
+        });
+    });
+
+    it('requests.user.findByEmail fail mock view findByEmail failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.view;
+
+            sofaInternals.db.view = function (user, findByEmail, keys, callback) {
+
+                sofaInternals.db.view = original;
+
+                return callback(new Error('mock findByEmail view error.'), null);
+            };
+
+            database.requests.user.findByEmail(internals.mockUser1.email, function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err));
+                expect(err).to.equal('findByEmail view query failed.');
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.findByEmail success email found.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByEmail(internals.mockUser1.email, function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err));
+                expect(err).to.equal(null);
+                expect(result).to.be.an.object();
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.findByEmail success no match found.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByEmail('testNoMatch@boom.com', function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err));
+                expect(err).to.equal(null);
+                expect(result).to.equal(0);
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.findByEmail fail email not unique.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.view;
+
+            sofaInternals.db.view = function (user, findByUsername, keys, callback) {
+
+                sofaInternals.db.view = original;
+
+                var result = {
+                    rows: [1, 2]  // mock returned rows more than one element.
+                };
+                return callback(null, result);
+            };
+
+            database.requests.user.findByEmail(internals.mockUser1.username, function (err, result) {
+
+                // console.log('error: ' + JSON.stringify(err) + ' result: ' + JSON.stringify(result));
+                expect(err).to.equal('Result not unique.');
+                return done();
+            });
+        });
+    });
+
+    it('cleanup requests.user.findByEmail fixtures.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+            // console.log('findByUsername mockUser1' + JSON.stringify(result));
+
+            database.requests.user.destroy(result._id, function (err, result2) {
+
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
+    });
+});
+
+
+describe('requests.user.updateEmail', function () {
+
+    it('requests.user.updateEmail success.', function (done) {
+    
+        // @todo build test here.
+
+        done();
+    });
 });
 
 internals.mockUser1 = {
