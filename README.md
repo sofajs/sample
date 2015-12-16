@@ -20,3 +20,8 @@
 * `npm test` ensure that all tests execute.
 * To use in hapijs project place sofajs object in `server.app` property.<br/>
   [server.app](hapijs.com/api#serverapp)
+
+### docos documentation server
+`npm run docos` then open the web application in your browser.<br/>
+Documentation for all functions written in the sofajs object is in the docos web app.<br/>
+Documentation will extend as you write more functions in sofajs.
