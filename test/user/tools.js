@@ -195,21 +195,40 @@ describe('uniqueUsername Create, Destroy, & Update', function () {
 
     it('tools.user.uniqueUsernameUpdate success', function (done) {
 
-        internals.done = done;
         return database.getSofaInternals(function (err, sofaInternals) {
 
-            var newUsername = 'uniqueUsernameUpdated';
+            var newUsername = 'uniqueUsernameUpdated1';
 
             return sofaInternals.tools.user.uniqueUsernameUpdate('username/' + internals.mockUser1.username, newUsername,
                 function (err, updatedUsername, updatedUsernameRev) {
 
                     if (err) {
-                        return internals.done();
+                        return done();
                     }
 
                     // console.log('result: ' + updatedUsername);
                     expect(updatedUsername).to.equal('username/' + newUsername);
-                    return  internals.done();
+                    return  done();
+                });
+        });
+    });
+
+
+    it('tools.user.uniqueUsernameUpdate success prefix coverage', function (done) {
+
+        return database.getSofaInternals(function (err, sofaInternals) {
+
+            var newUsername = 'username/uniqueUsernameUpdated';
+
+            return sofaInternals.tools.user.uniqueUsernameUpdate('username/uniqueUsernameUpdated1', newUsername,
+                function (err, updatedUsername, updatedUsernameRev) {
+
+                    if (err) {
+                        return done();
+                    }
+
+                    expect(updatedUsername).to.equal(newUsername);
+                    return  done();
                 });
         });
     });
@@ -223,7 +242,7 @@ describe('uniqueUsername Create, Destroy, & Update', function () {
 
             var newUsername = 'uniqueUsernameUpdated';
 
-            sofaInternals.tools.user.uniqueUsernameUpdate('username/' + internals.mockUser1.username, newUsername,
+            sofaInternals.tools.user.uniqueUsernameUpdate('username/userfail', newUsername,
                 function (err, updatedUsername, updatedUsernameRev) {
 
                     if (err) {
@@ -808,6 +827,54 @@ describe('tools.user.generateUniqueValues', function () {
                     expect(splitRevisionId[1]).to.have.length(32);
                     done();
                 });
+            });
+        });
+    });
+});
+
+describe('tools.user.validateUsername', function () {
+
+
+    it('tools.user.validateUsername success valid username.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.validateUsername('wakawaka', function (err, username) {
+
+                expect(err).to.equal(null);
+
+                // expect(splitRevisionId[1]).to.have.length(32);
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validateUsername fail invalid username.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.validateUsername('wakawa', function (err, username) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('Invalid username.');
+
+
+                done();
+            });
+        });
+    });
+
+    it('tools.user.validateUsername success forbiden characters washed out.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            sofaInternals.tools.user.validateUsername('wa(k)awa>ka', function (err, username) {
+
+                // console.log('tools.validateUsername ' + 'err ' + JSON.stringify(err) + ' username ' + JSON.stringify(username));
+                expect(err).to.equal(null);
+                expect(username).to.equal('wakawaka');
+
+                done();
             });
         });
     });

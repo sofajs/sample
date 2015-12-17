@@ -621,6 +621,51 @@ describe('requests.user.updateUsername', function () {
         });
     });
 
+    it('requests.user.updateUsername mock tools.user.uniqueUsernameUpdate.', function (done) {
+
+        database.requests.user.findByUsername('shakaka', function (err, userDocument) {
+
+            // will fail because username shakaka already exists.
+            // fact that shakaka is current document's username is irrelevant.
+
+            var newUsername = 'shakaka';
+
+            return database.requests.user.updateUsername(userDocument._id, userDocument.username, newUsername, function (err, result) {
+
+                expect(err).to.exist();
+                expect(err).to.equal('uniqueUsernameUpdate failed.');
+                return done();
+            });
+        });
+    });
+
+    it('requests.user.updateUsername mock design update function failure causing rollback.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // make mockups
+
+            var original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, updateName, docid, key, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock design update function failure.'), null);
+            };
+
+            database.requests.user.findByUsername('shakaka', function (err, userDocument) {
+
+                var newUsername = 'faileduser';
+
+                return database.requests.user.updateUsername(userDocument._id, userDocument.username, newUsername, function (err, result) {
+
+                    expect(err).to.equal('user.username update function failed.');
+                    return done();
+                });
+            });
+        });
+    });
+
     it('cleanup requests.user.updateUsername fixtures.', function (done) {
 
         // database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
@@ -631,6 +676,116 @@ describe('requests.user.updateUsername', function () {
             database.requests.user.destroy(result._id, function (err, result2) {
 
                 // console.log('cleanup response: ' + JSON.stringify(err));
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
+    });
+});
+
+describe('requests.user.updatePassword ', function () {
+
+    it('requests.user.updatePassword success.', function (done) {
+
+        // create user document to update password in.
+
+        database.requests.user.create(internals.mockUser1, function (err, result) {
+
+            // console.log('updatePassword fixture result: ' + JSON.stringify(err) + '--' + JSON.stringify(result) );
+
+            expect(result.ok).to.equal(true);
+            expect(result.id).to.have.length(32);
+
+            var idToUpdatePW = result.id;
+
+            database.requests.user.updatePassword(idToUpdatePW, 'n3wP4ssWord_@', function (err2, result2) {
+
+                expect(result2).to.equal('Updated password.');
+                done();
+            });
+        });
+    });
+
+    it('requests.user.updatePassword fail password invalid.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+            // attempt to update invalid password.
+
+            database.requests.user.updatePassword(userDocument._id, 'n3wP4ssWord_', function (err, result) {
+
+                expect(err).to.equal('Invalid password.');
+                done();
+            });
+        });
+
+    });
+
+    it('requests.user.updatePassword fail hash of password failed.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+                // console.log('target userdoc to work on: ' + JSON.stringify(userDocument));
+
+                // attempt to update invlid password.
+
+                var original = sofaInternals.tools.user.hashem;
+
+                sofaInternals.tools.user.hashem = function (newPassword, callback) {
+
+                    sofaInternals.tools.user.hashem = original;
+                    return callback(new Error('mock hashem failure.'), null);
+                };
+
+                database.requests.user.updatePassword(userDocument._id, 'n3wP4ssWord_#', function (err, result) {
+
+                    // console.log('updatePW test: ' + err + ' result: ' + JSON.stringify(result));
+                    expect(err).to.equal('Hash of new password failed.');
+                    done();
+                });
+            });
+        });
+    });
+
+    it('requests.user.updateEmail fail mock design update failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            // make mockups
+
+            var original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, updateName, docid, key, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock design user update password failure.'), null);
+            };
+
+            database.requests.user.findByUsername(internals.mockUser1.username, function (err, userDocument) {
+
+                database.requests.user.updatePassword(userDocument._id, 'n3wP4ssWord_#', function (err, result) {
+
+                    // console.log('updatePW test: ' + err + ' result: ' + JSON.stringify(result));
+                    expect(err).to.equal('User design update password failed.');
+                    done();
+                });
+            });
+        });
+    });
+
+    it('cleanup requests.user.updatePassword fixture data.', function (done) {
+
+        database.requests.user.findByUsername(internals.mockUser1.username, function (err, result) {
+
+            // console.log('findByUsername mockUser1' + JSON.stringify(result));
+
+            database.requests.user.destroy(result._id, function (err, result2) {
+
                 var splitRevisionId = result2.rev.split('-');
                 expect(splitRevisionId[1]).to.have.length(32);
                 expect(result2.ok).to.equal(true);
