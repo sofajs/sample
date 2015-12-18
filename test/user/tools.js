@@ -1,9 +1,9 @@
 var Code = require('code');
 var Lab = require('lab');
 var Joi = require('joi');
-// var Sofajs = require('sofajs');
+var Sofajs = require('sofajs');
 
-var Sofajs = require('../../../sofajs/lib');
+// var Sofajs = require('../../../sofajs/lib');
 var Composer = require('../../lib/sofafest');
 
 var lab = exports.lab = Lab.script();
