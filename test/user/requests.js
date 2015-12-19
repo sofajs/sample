@@ -1081,7 +1081,7 @@ describe('requests.user.authenticate', function () {
 
         database.getSofaInternals(function (err, sofaInternals) {
 
-            original = sofaInternals.db.atomic;
+            var original = sofaInternals.db.atomic;
 
             sofaInternals.db.atomic = function (designName, functionName, documentId, parameters, callback) {
 
@@ -1099,22 +1099,22 @@ describe('requests.user.authenticate', function () {
         });
     });
 
-    // it('cleanup request.user.authenticate fixtures.', function (done) {
+    it('cleanup request.user.authenticate fixtures.', function (done) {
 
-    //     database.requests.user.findByUsername(internals.mockUser3.username, function (err, result) {
+        database.requests.user.findByUsername(internals.mockUser3.username, function (err, result) {
 
-    //         // console.log('findByUsername mockUser1' + JSON.stringify(result));
+            // console.log('findByUsername mockUser1' + JSON.stringify(result));
 
-    //         database.requests.user.destroy(result._id, function (err, result2) {
+            database.requests.user.destroy(result._id, function (err, result2) {
 
-    //             var splitRevisionId = result2.rev.split('-');
-    //             expect(splitRevisionId[1]).to.have.length(32);
-    //             expect(result2.ok).to.equal(true);
-    //             //expect(result.ok).to.equal(true);
-    //             done();
-    //         });
-    //     });
-    // });
+                var splitRevisionId = result2.rev.split('-');
+                expect(splitRevisionId[1]).to.have.length(32);
+                expect(result2.ok).to.equal(true);
+                //expect(result.ok).to.equal(true);
+                done();
+            });
+        });
+    });
 });
 
 internals.mockUser1 = {

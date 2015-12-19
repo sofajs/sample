@@ -880,6 +880,31 @@ describe('tools.user.validateUsername', function () {
     });
 });
 
+describe('tools.user.revertLockout', function () {
+
+    it('tools.user.revertLockout mock _design/user update revertLockout failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, updateName, docid, key, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock _design/user update revertLockout function failure.'), null);
+            };
+
+            var documentId = 1345;
+
+            sofaInternals.tools.user.revertLockout(documentId, function (err, result) {
+
+                expect(err).to.equal('revertLockout failed.');
+                done();
+            });
+        });
+    });
+});
+
 internals.mockUser1 = {
     'username': 'uniqueuser',
     'first': 'Sofa',
