@@ -1,3 +1,4 @@
+var Async = require('async');
 var Code = require('code');
 var Lab = require('lab');
 var Sofajs = require('sofajs');
@@ -796,6 +797,326 @@ describe('requests.user.updatePassword ', function () {
     });
 });
 
+describe('requests.user.authenticate', function () {
+
+    it('request.user.authenticate load fixture data.', function (done) {
+
+        database.requests.user.create(internals.mockUser3, function (err, result) {
+
+            expect(result.ok).to.equal(true);
+            done();
+        });
+    });
+
+    it('request.user.authenticate success.', function (done) {
+
+        var pw = 'h@PP1_4utoo3';
+
+        database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+            if (err === null) {
+
+                // console.log('authentication result: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+                expect(result).to.be.an.object();
+                expect(result.username).to.exist();
+                done();
+            }
+        });
+    });
+
+
+    it('request.user.authenticate fail bad pw received.', function (done) {
+
+        var pw = 'buhao_badPW';
+
+        database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+            expect(err).to.equal('password invalid.');
+            // console.log('authentication result: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+            done();
+        });
+    });
+
+    it('request.user.authenticate fail bad pw loginAttempts incremented.', function (done) {
+
+        Async.series([
+            function (callback) {
+
+                var pw = 'h@PP1_badpw';
+
+                var attempt = function attempt () {
+
+                    database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+                        ++counter;
+
+                        if (counter === 9) {
+                            return callback(null, 'one');
+                        }
+
+                        expect(err).to.equal('password invalid.');
+
+                        // recursion
+
+                        attempt();
+                    });
+                };
+
+                var counter = 0;
+
+                attempt();
+            },
+            function (callback) {
+
+                // verify lockout values.
+
+                database.requests.user.findByEmail(internals.mockUser3.email, function (err, userDocument) {
+
+                    if (err) {
+                        return callback('user email not found.', null);
+                    }
+
+                    // console.log('lock out values: err ' + JSON.stringify(err) + '\n userDocument \n' + JSON.stringify(userDocument));
+
+                    callback(null, 'two');
+
+                    expect(userDocument.lockUntil > Date.now()).to.equal(true);
+
+                    // @todo clean this up.
+                    // var difference = userDocument.lockUntil - userDocument.created;
+                    // var Seconds_from_T1_to_T2 = difference / 1000;
+                    // var newvalue = userDocument.lockUntil - difference;
+                    // console.log('math: ' + Seconds_from_T1_to_T2);
+                });
+
+            }
+        ], function (err, results) {
+
+            // console.log('finished async');
+            done();
+        });
+    });
+
+    it('request.user.authenticate fail user lockedOut banned from logging in.', function (done) {
+
+        // After ten failed login attempts. User is lockedOut for 24 hours.
+        // When lockOut expires loginAttempt count reset to zero and lockout accounting
+        // starts again.
+
+        var pw = 'h@PP1_4utoo3';
+
+        database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+            // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+            // expect(result).to.equal('revertLockout succeeded');
+
+            expect(err).to.equal('User blacklisted.');
+            done();
+        });
+    });
+
+    it('prepare request.user.authenticate mock lockOut expiration.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser3.username, function (err, result) {
+
+                // console.log('findByUsername mockUsere mock lockOut expiration: ' + JSON.stringify(result));
+
+                var original = result.lockUntil;
+
+                result.lockUntil = Date.now() - 60 * 1000;
+
+                // console.log('AFTER findByUsername mockUsere mock lockOut expiration: ' + JSON.stringify(result));
+
+                sofaInternals.db.insert(result, function (err, body) {
+
+                    if (!err){
+                        // console.log('update result: ' + JSON.stringify(body));
+                        // expect(result.lockUntil < original).to.equal(true);
+                        expect(body.ok).to.equal(true);
+                        done();
+                    }
+
+                });
+
+            });
+        });
+    });
+
+    it('request.user.authenticate success lockOut expired successful login.', function (done) {
+
+        // After ten failed login attempts. User is lockedOut for 24 hours.
+        // When lockOut expires loginAttempt count reset to zero and lockout accounting
+        // starts again.
+
+        var pw = 'h@PP1_4utoo3';
+
+        database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+            // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+            // expect(result).to.equal('revertLockout succeeded');
+            expect(result).to.be.an.object();
+            done();
+        });
+    });
+
+    it('request.user.authenticate fail username email not exist.', function (done) {
+
+        // After ten failed login attempts. User is lockedOut for 24 hours.
+        // When lockOut expires loginAttempt count reset to zero and lockout accounting
+        // starts again.
+
+        var pw = 'h@PP1_4utoo3';
+        var email = 'jono@bonzo.com';
+
+        database.requests.user.authenticate(email, pw, function (err, result) {
+
+            // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+            // expect(result).to.equal('revertLockout succeeded');
+            expect(err).to.equal('user email not found.');
+            done();
+        });
+    });
+
+    it('request.user.authenticate mock findByEmail failure.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = sofaInternals.requests.user.findByEmail;
+
+            sofaInternals.requests.user.findByEmail = function (email, callback) {
+
+                sofaInternals.requests.user.findByEmail = original;
+                return callback(new Error('mock findByEmail failure.'), null);
+            };
+
+            var pw = 'h@PP1_4utoo3';
+            var email = 'jono@bonzo.com';
+
+            database.requests.user.authenticate(email, pw, function (err, result) {
+
+                // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+                // expect(result).to.equal('revertLockout succeeded');
+                expect(err).to.equal('findByEmail failed.');
+                done();
+            });
+        });
+    });
+
+    it('prepare request.user.authenticate mock lockOut expired fail login.', function (done) {
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            database.requests.user.findByUsername(internals.mockUser3.username, function (err, result) {
+
+                // console.log('findByUsername mockUsere mock lockOut expiration: ' + JSON.stringify(result));
+
+                var original = result.lockUntil;
+
+                result.lockUntil = Date.now() - 60 * 1000;
+                result.loginAttempts = 10;
+
+                // console.log('AFTER findByUsername mockUsere mock lockOut expiration: ' + JSON.stringify(result));
+
+                sofaInternals.db.insert(result, function (err, body) {
+
+                    if (!err){
+                        // console.log('update result: ' + JSON.stringify(body));
+                        expect(body.ok).to.equal(true);
+                        done();
+                    }
+
+                });
+            });
+        });
+    });
+
+    it('request.user.authenticate fail lockOut expired bad password.', function (done) {
+
+        // After ten failed login attempts. User is lockedOut for 24 hours.
+        // When lockOut expires loginAttempt count reset to zero and lockout accounting
+        // starts again.
+
+        var pw = 'h@PP1_4nnnn';
+
+        database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+            // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
+            // expect(result).to.equal('revertLockout succeeded');
+            // expect(result).to.be.an.object();
+            expect(err).to.equal('password invalid.');
+            done();
+        });
+    });
+
+    it('request.user.authenticate mock Bcrypt.compare failure.', function (done) {
+
+        var Bcrypt = require('bcrypt');
+        var pw = 'h@PP1_4nnnn';
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            var original = Bcrypt.compare;
+
+            Bcrypt.compare = function (submittedPW, documentPW, callback) {
+
+                Bcrypt.compare = original;
+                return callback(new Error('mock Bcrypt failure.'), null);
+            };
+
+            database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+                // Even though faking Bcrypt failure to simplify error messages
+                // in internals.comparePassword() only return 'password invalid.' message.
+                expect(err).to.equal('password invalid.');
+                done();
+            });
+        });
+    });
+
+    it('request.user.authenticate fail mock bump login attempts nano.atomic failure.', function (done) {
+
+        var pw = 'h@PP1_4nnnn';
+
+        database.getSofaInternals(function (err, sofaInternals) {
+
+            original = sofaInternals.db.atomic;
+
+            sofaInternals.db.atomic = function (designName, functionName, documentId, parameters, callback) {
+
+                sofaInternals.db.atomic = original;
+                return callback(new Error('mock nano.atomic user design function failure.'), null);
+            };
+
+            database.requests.user.authenticate(internals.mockUser3.email, pw, function (err, result) {
+
+                // Even though faking Bcrypt failure to simplify error messages
+                // in internals.comparePassword() only return 'password invalid.' message.
+                expect(err).to.equal('password invalid.');
+                done();
+            });
+        });
+    });
+
+    // it('cleanup request.user.authenticate fixtures.', function (done) {
+
+    //     database.requests.user.findByUsername(internals.mockUser3.username, function (err, result) {
+
+    //         // console.log('findByUsername mockUser1' + JSON.stringify(result));
+
+    //         database.requests.user.destroy(result._id, function (err, result2) {
+
+    //             var splitRevisionId = result2.rev.split('-');
+    //             expect(splitRevisionId[1]).to.have.length(32);
+    //             expect(result2.ok).to.equal(true);
+    //             //expect(result.ok).to.equal(true);
+    //             done();
+    //         });
+    //     });
+    // });
+});
+
 internals.mockUser1 = {
     'username': 'mockuser1',
     'first': 'Mookie',
@@ -804,7 +1125,8 @@ internals.mockUser1 = {
     'email': 'mock1@mock.com',
     'scope': ['user'],
     loginAttempts: 0,
-    lockUntil: Date.now() - 60 * 1000
+    lockUntil: Date.now() - 60 * 1000,
+    created: Date.now()
 };
 
 internals.mockUser2 = {
@@ -815,5 +1137,18 @@ internals.mockUser2 = {
     'email': 'mock2@mock.com',
     'scope': ['user'],
     loginAttempts: 0,
-    lockUntil: Date.now() - 60 * 1000
+    lockUntil: Date.now() - 60 * 1000,
+    created: Date.now()
+};
+
+internals.mockUser3 = {
+    'username': 'mockuser3',
+    'first': 'Kookie',
+    'last': 'YookYook',
+    'pw': 'h@PP1_4utoo3',
+    'email': 'mock3@mock.com',
+    'scope': ['user'],
+    loginAttempts: 0,
+    lockUntil: Date.now() - 60 * 1000,
+    created: Date.now()
 };

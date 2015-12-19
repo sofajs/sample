@@ -888,6 +888,7 @@ internals.mockUser1 = {
     'email': 'sofajs@boom.com',
     'scope': ['user'],
     loginAttempts: 0,
-    lockUntil: Date.now() - 60 * 1000
+    lockUntil: Date.now() - 60 * 1000,
+    created: Date.now()
 };
 
