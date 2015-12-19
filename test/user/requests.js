@@ -873,7 +873,7 @@ describe('requests.user.authenticate', function () {
                 database.requests.user.findByEmail(internals.mockUser3.email, function (err, userDocument) {
 
                     if (err) {
-                        return callback('user email not found.', null);
+                        return callback('user email does not exist.', null);
                     }
 
                     // console.log('lock out values: err ' + JSON.stringify(err) + '\n userDocument \n' + JSON.stringify(userDocument));
@@ -910,7 +910,7 @@ describe('requests.user.authenticate', function () {
             // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
             // expect(result).to.equal('revertLockout succeeded');
 
-            expect(err).to.equal('User blacklisted.');
+            expect(err).to.equal('user blacklisted.');
             done();
         });
     });
@@ -974,7 +974,7 @@ describe('requests.user.authenticate', function () {
 
             // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
             // expect(result).to.equal('revertLockout succeeded');
-            expect(err).to.equal('user email not found.');
+            expect(err).to.equal('user email does not exist.');
             done();
         });
     });
@@ -998,7 +998,7 @@ describe('requests.user.authenticate', function () {
 
                 // console.log('revertLockOut: ' + JSON.stringify(err) + ' ' + JSON.stringify(result));
                 // expect(result).to.equal('revertLockout succeeded');
-                expect(err).to.equal('findByEmail failed.');
+                expect(err).to.equal('system error findByEmail failed.');
                 done();
             });
         });
